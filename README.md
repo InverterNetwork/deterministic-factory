@@ -17,6 +17,12 @@ The Inverter Deterministic Deployment Factory smart contracts are developed usin
 
 ## Usage
 
+#### Usage of the Factory
+
+If you are looking to make use of the Deterministic Factory yourself, you can find our documentation on its use [here](./USAGE.md).
+
+#### Usage of the Project
+
 Common tasks are executed through a `Makefile`. The most common commands are:
 
 -   `make build` to compile the project.
