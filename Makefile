@@ -81,6 +81,7 @@ testScripts:
  	
 	@forge script script/Deployment.s.sol
 	@forge script script/PrintBytecode.s.sol
+	@forge script script/SetAllowedDeployer.s.sol
 
 # -----------------------------------------------------------------------------
 # Static Analyzers
