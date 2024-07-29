@@ -16,6 +16,9 @@ contract DeterministicFactoryV1Test is Test {
     // Instance of the deterministic factory
     DeterministicFactory_v1 internal deterministicFactory;
 
+    // Underlying deployed contract
+    ContractMock regular;
+
     // Addresses for testing purposes
     address internal trustedForwarder = makeAddr("TrustedForwarder");
     address internal teamMultiSig = makeAddr("TeamMultiSig");
@@ -34,6 +37,8 @@ contract DeterministicFactoryV1Test is Test {
     bytes internal code = vm.getCode("ContractMock.sol:ContractMock");
     bytes internal bytecode = abi.encodePacked(code, args);
 
+    //--------------------------------------------------------------------------
+    // Setup
     function setUp() public {
         // Set up a new deterministic factory
         deterministicFactory = new DeterministicFactory_v1(teamMultiSig);
@@ -41,18 +46,27 @@ contract DeterministicFactoryV1Test is Test {
         // Set the caller1 as the allowed deployer
         vm.prank(teamMultiSig);
         deterministicFactory.setAllowedDeployer(caller1);
+
+        // Prepare tests with a regular deployment to compare against
+        regular = new ContractMock(trustedForwarder);
     }
 
+    //--------------------------------------------------------------------------
+    // Tests
+
     // Test whether the deployment creates the correct contract
-    function testDeploymentCreatesCorrectContract(bytes32 salt) public {
-        // Deploy the contract in the regular way
-        ContractMock regular = new ContractMock(trustedForwarder);
+    function testDeploymentCreatesCorrectContract(bytes32 salt)
+        public
+        ensureValidSalt(salt)
+    {
+        // Calculate the address of the contract with the provided salt
+        address computed = computeAddress(salt);
 
         // Deploy the contract using the deterministic factory
         vm.prank(caller1);
-        vm.expectEmit(true, false, true, true);
+        vm.expectEmit(true, true, true, true);
         emit IDeterministicFactory_v1.DeterministicFactory__NewDeployment(
-            salt, address(0)
+            salt, computed
         );
         address deployed =
             deterministicFactory.deployWithCreate2(salt, bytecode);
@@ -66,10 +80,7 @@ contract DeterministicFactoryV1Test is Test {
     // wrong/different constructor arguments compared to a regular deployment
     function testDeploymentCreatesIncorrectContractWithWrongArguments(
         bytes32 salt
-    ) public {
-        // Deploy the contract in the regular way
-        ContractMock regular = new ContractMock(trustedForwarder);
-
+    ) public ensureValidSalt(salt) {
         // Prepare the bytecode with the wrong arguments
         bytes memory argsWrong =
             abi.encode(makeAddr("IncorrectTrustedForwarder"));
@@ -87,7 +98,10 @@ contract DeterministicFactoryV1Test is Test {
 
     // Test whether the deployment fails if the contract already exists
     // at the address
-    function testDeploymentFailsIfContractExists(bytes32 salt) public {
+    function testDeploymentFailsIfContractExists(bytes32 salt)
+        public
+        ensureValidSalt(salt)
+    {
         // Deploy the contract using the deterministic factory
         vm.prank(caller1);
         deterministicFactory.deployWithCreate2(salt, bytecode);
@@ -100,7 +114,10 @@ contract DeterministicFactoryV1Test is Test {
     }
 
     // Test whether the deployment fails if the provided bytecode is empty
-    function testDeploymentFailsIfBytecodeEmpty(bytes32 salt) public {
+    function testDeploymentFailsIfBytecodeEmpty(bytes32 salt)
+        public
+        ensureValidSalt(salt)
+    {
         // Create an empty byte code
         bytes memory emptyBytecode;
 
@@ -115,7 +132,7 @@ contract DeterministicFactoryV1Test is Test {
     function testDeploymentFailsIfCallerUnauthorized(
         bytes32 salt,
         address caller
-    ) public {
+    ) public ensureValidSalt(salt) ensureValidAddress(caller) {
         // We want to try whether the deployment fails if the caller is not
         // authorized to deploy contracts using the deterministic factory, so
         // we need to make sure that the caller is not the allowed deployer
@@ -134,7 +151,7 @@ contract DeterministicFactoryV1Test is Test {
     function testDeploymentAuthorizationPassingWorks(
         bytes32 salt,
         address caller
-    ) public {
+    ) public ensureValidSalt(salt) ensureValidAddress(caller) {
         // We want to try whether the deployment authorization system works
         // as expected, so we need to make sure that the caller is not the
         // allowed deployer
@@ -177,13 +194,12 @@ contract DeterministicFactoryV1Test is Test {
     }
 
     // Test whether the address calculation is accurate
-    function testAddressCalculationIsAccurate(bytes32 salt) public {
-        // Calculate the code hash of the bytecode
-        bytes32 codeHash = deterministicFactory.getCodeHash(bytecode);
-
-        // Calculate the address that a contract with the provided codeHash
-        address computed =
-            deterministicFactory.computeCreate2Address(salt, codeHash);
+    function testAddressCalculationIsAccurate(bytes32 salt)
+        public
+        ensureValidSalt(salt)
+    {
+        // Calculate the address of the contract with the provided salt
+        address computed = computeAddress(salt);
 
         // Deploy the contract using the deterministic factory
         vm.prank(caller1);
@@ -200,13 +216,12 @@ contract DeterministicFactoryV1Test is Test {
 
     // Test whether the address calculation is working as expected
     // given different values
-    function testAddressCalculationWithDifferentValues(bytes32 salt) public {
-        // Calculate the code hash of the bytecode using the correct arguments
-        bytes32 codeHash = deterministicFactory.getCodeHash(bytecode);
-
-        // Calculate the address that a contract with the provided codeHash
-        address computed =
-            deterministicFactory.computeCreate2Address(salt, codeHash);
+    function testAddressCalculationWithDifferentValues(bytes32 salt)
+        public
+        ensureValidSalt(salt)
+    {
+        // Calculate the address of the contract with the provided salt
+        address computed = computeAddress(salt);
 
         // Prepare the bytecode with the wrong arguments
         bytes memory argsWrong =
@@ -222,5 +237,42 @@ contract DeterministicFactoryV1Test is Test {
         // Expect that the computed address is not the same as the deployed
         // address as the bytecode is different due to the wrong arguments
         assertNotEq(computed, deployed);
+    }
+
+    //--------------------------------------------------------------------------
+    // Internal Helpers and Modifier
+
+    // Helper function to compute the address of a contract given
+    // a salt, with the already known bytecode
+    function computeAddress(bytes32 _salt) internal view returns (address) {
+        // Calculate the code hash of the bytecode
+        bytes32 codeHash = deterministicFactory.getCodeHash(bytecode);
+
+        // Calculate the address that a contract with the provided codeHash
+        return deterministicFactory.computeCreate2Address(_salt, codeHash);
+    }
+
+    // Helper function to ensure that the address is valid and not
+    // accidentally set to a "reserved" address
+    function _ensureValidAddress(address _address) internal {
+        vm.assume(_address != address(0));
+        vm.assume(_address != address(this));
+        vm.assume(_address != address(deterministicFactory));
+        vm.assume(_address != address(regular));
+        vm.assume(_address != caller1);
+        vm.assume(_address != trustedForwarder);
+        vm.assume(_address != teamMultiSig);
+    }
+
+    // Modifier to ensure that the salt is valid
+    modifier ensureValidSalt(bytes32 _salt) {
+        _ensureValidAddress(computeAddress(_salt));
+        _;
+    }
+
+    // Modifier to ensure that the address is valid
+    modifier ensureValidAddress(address _address) {
+        _ensureValidAddress(_address);
+        _;
     }
 }
