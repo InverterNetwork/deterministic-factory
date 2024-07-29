@@ -1,0 +1,29 @@
+[profile.default]
+src = 'src'
+out = 'out'
+libs = ['lib']
+fs_permissions = [{ access = "read-write", path = "./"}]
+
+# Compilation
+solc_version = "0.8.23"
+optimizer = true
+optimizer_runs = 1024
+via_ir = false
+
+[fuzz]
+runs = 256
+
+[fmt]
+line_length = 80
+int_types = "short"
+number_underscore = "thousands"
+
+[profile.ci]
+fuzz = { runs = 1_024 }
+verbosity = 4
+
+[rpc_endpoints]
+mainnet = "${RPC_URL}"
+sepolia = "${SEPOLIA_RPC_URL}"
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
