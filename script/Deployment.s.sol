@@ -6,7 +6,7 @@ import "forge-std/Script.sol";
 // Import contracts
 import {DeterministicFactory_v1} from "src/DeterministicFactory_v1.sol";
 
-contract DeploymentScript is Script {
+contract Deployment is Script {
     uint deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
     address deployer = vm.addr(deployerPrivateKey);
 
