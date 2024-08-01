@@ -13,12 +13,12 @@ import {Create2} from "@oz/utils/Create2.sol";
  * @title   Deterministic Deployment Factory
  *
  * @notice  This contract is a factory for deploying contracts using the CREATE2 opcode,
- *             allowing us to deploy some of our contract at the same address of each EVM-
+ *          allowing us to deploy some of our contract at the same address for each EVM-
  *          compatible network.
  *
- * @dev     We limit this to a specific address ('allowedDeployer'), as otherwise anyone
- *          could deploy our contracts at the addresses we use. This can be problematic
- *          for contracts that are initialized, i.e. where the owner is only set
+ * @dev     We limit the deployment to a specific address ('allowedDeployer'), as otherwise
+ *          anyone could deploy our contracts at the addresses we use. This can be
+ *          problematic for contracts that are initialized, i.e. where the owner is only set
  *          after deployment, which would hand them ownership of the contracts. We intend
  *          to set this 'allowedDeployer' to the deployment account we use, and then
  *          set it to the zero address afterwards (until the next deployment takes place).
@@ -33,7 +33,7 @@ contract DeterministicFactory_v1 is IDeterministicFactory_v1, Ownable2Step {
     //--------------------------------------------------------------------------
     // Variables
 
-    // The address that is allowed to use the factory.
+    /// @dev The address that is allowed to use the factory.
     address public allowedDeployer;
 
     //--------------------------------------------------------------------------
