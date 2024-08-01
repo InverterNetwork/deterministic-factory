@@ -10,6 +10,7 @@ The Inverter Deterministic Factory is a contract that allows for the determinist
 2. [Events](#events)
 3. [Usage](#usage)
     1. [Converting Existing Scripts](#converting-existing-scripts)
+4. [Verification](#verification)
 
 ## Public Functions
 
@@ -186,6 +187,35 @@ gov.init(
     timelockPeriod,
     initialFeeManager
 );
+```
+
+## Verification
+
+As the contract is likely to be deployed outside of Foundry, it's recommended to verify the contract on the corresponding block explorer. To do so, it's the easiest to export the contract via the Standard-JSON-Input format via this command
+
+```bash
+forge verify-contract --show-standard-json-input 0x0000000000000000000000000000000000000000 DeterministicFactory_v1 > DeterministicFactory_v1.json
+```
+
+The zero address in there is okay, it's not important as we will only use the resulting file. The command creates a file `DeterministicFactory_v1.json` in the current folder, which you then upload during the verification after chosing the Standard-JSON-Input method.
+
+The other details for the verification are:
+
+```
+Optimization: Yes
+Optimizer Runs: 1024
+Compiler Version: v0.8.23+commit.f704f362
+Open Source License Type: GNU Affero General Public License (GNU AGPLv3)
+```
+
+The block explorer will likely have issues decoding the `constructor`, so (if prompted) put in the `constructor` in its abi-encoded version, which only consists of the address of the owner, like so:
+
+```
+// Find the owner that is being set in the constructor, e.g.
+Deployer Address: 0x1231231231231231231231231231231231231231
+
+// Remove the 0x and add 24 zeros at the front, resulting in a 64 character string
+Encoded constructor: 0000000000000000000000001231231231231231231231231231231231231231
 ```
 
 ---
