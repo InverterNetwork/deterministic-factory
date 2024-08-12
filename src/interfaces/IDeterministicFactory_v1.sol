@@ -24,6 +24,11 @@ interface IDeterministicFactory_v1 {
     //--------------------------------------------------------------------------
     // Public Functions
 
+    /// @notice Returns the address that is allowed to deploy contracts.
+    function allowedDeployer() external view returns (address);
+
+    /// @notice Sets the address that is allowed to deploy contracts.
+    /// @param _allowedDeployer The address to allow.
     function setAllowedDeployer(address _allowedDeployer) external;
 
     /// @notice Function to deploy an arbitrary contract with a salt
