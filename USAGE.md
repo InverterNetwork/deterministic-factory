@@ -10,6 +10,7 @@ The Inverter Deterministic Factory is a contract that allows for the determinist
 2. [Events](#events)
 3. [Usage](#usage)
     1. [Converting Existing Scripts](#converting-existing-scripts)
+    2. [Manual Deployment](#manual-deployment)
 4. [Verification](#verification)
 
 ## Public Functions
@@ -54,6 +55,14 @@ function setAllowedDeployer(address _allowedDeployer) external;
 
 Sets the address that is allowed to use the factory for deployments. This function can only be called by the contract owner.
 
+#### allowedDeployer
+
+```solidity
+function allowedDeployer() external returns (address);
+```
+
+Returns the address that is allowed to use the factory for deployments.
+
 ## Events
 
 #### DeterministicFactory\_\_AllowedDeployerChanged
@@ -82,7 +91,7 @@ Emitted when a new contract is deployed using CREATE2.
 In general, two things are needed in order to deploy a contract via CREATE2: a bytecode of the contract and a salt. The salt is a `bytes32` variable that can be anything, a number, a hash, a string, etc. It is a practice to choose reasonable values here, i.e.
 
 ```solidity
-bytes32 salt = keccak256("inverter-deployment-01");
+bytes32 salt = keccak256("inverter-deployment-1");
 ```
 
 This ensures that a salt is not re-used on accident for other deployments that may take place. It is important to re-use the same salt, whenever a deployment on a different network shall arrive at the same address.
@@ -164,7 +173,7 @@ In this example, we'd want the `Governor_v1` contract to be deployed at a determ
 DeterministicFactory_v1 factory = DeterministicFactory_v1(0x00...000);
 
 // Define salt that was used for the deployments
-bytes32 salt = keccak256("inverter-deployment-01");
+bytes32 salt = keccak256("inverter-deployment-1");
 
 // Deploy the Governor_v1.
 bytes memory implBytecode = vm.getCode("Governor_v1.sol:Governor_v1");
@@ -188,6 +197,28 @@ gov.init(
     initialFeeManager
 );
 ```
+
+### Manual Deployment
+
+As the deployment of this factory, may also happen outside of the contained scripts, we added a simple way to obtain the bytecode needed for a deployment via a regular transaction or an existing factory (_like the [CreateCall](https://github.com/safe-global/safe-smart-account/blob/main/contracts/libraries/CreateCall.sol) library from [Safe](https://safe.global/)_).
+
+To do so, set the address that should own the resulting factory contract as `MULTISIG_ADDRESS` in the `dev.env` file, before executing this:
+
+```bash
+# Load the (updated) dev.env file into your environment
+source dev.env
+
+# Execute the script that prints the bytecode
+forge script script/deploymentScript/TestnetDeploymentScript.s.sol
+```
+
+Alternatively you can also skip the `dev.env` part, and just set the `MULTISIG_ADDRESS` via this command (_replace `0x00...00` with the correct address_):
+
+```bash
+forge script script/PrintBytecode.s.sol MULTISIG_ADDRESS=0x00...00
+```
+
+The resulting bytecode already contains the constructor data and just needs to be either sent to the zero address (_regular contract creation_) or used as the argument in a deployment factory (_like the one mentioned above_).
 
 ## Verification
 
